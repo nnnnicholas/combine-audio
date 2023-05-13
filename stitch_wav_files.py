@@ -8,7 +8,7 @@ from tqdm import tqdm
 logging.basicConfig(filename='error.log', level=logging.ERROR, 
                     format='%(asctime)s %(levelname)s: %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 
-def stitch_files(directory):
+def stitch_files(directory, intermediate_bitrate="128k"):
     # Get a list of all .wav files (case-insensitive) in the directory
     files = sorted([f for f in os.listdir(directory) if f.lower().endswith('.wav')])
 
@@ -16,15 +16,29 @@ def stitch_files(directory):
     if not files:
         raise ValueError("The specified directory is empty or contains no .wav files")
 
-    # Load the first file
-    combined = AudioSegment.from_wav(os.path.join(directory, files[0]))
+    # Convert each .wav file to an intermediate .mp3 file with 128 kbps bitrate
+    intermediate_files = []
+    for file in tqdm(files, desc="Converting .wav files to .mp3", unit="file"):
+        wav_path = os.path.join(directory, file)
+        wav_audio = AudioSegment.from_wav(wav_path)
+        intermediate_file = os.path.splitext(file)[0] + "_intermediate.mp3"
+        wav_audio.export(intermediate_file, format="mp3", bitrate=intermediate_bitrate)
+        intermediate_files.append(intermediate_file)
 
-    # Append all subsequent files with a progress bar
-    for f in tqdm(files[1:], desc="Combining audio files", unit="file"):
-        combined += AudioSegment.from_wav(os.path.join(directory, f))
+    # Load the first intermediate .mp3 file
+    combined = AudioSegment.from_mp3(intermediate_files[0])
 
-    # Export to mp3
+    # Append all subsequent intermediate .mp3 files
+    for file in tqdm(intermediate_files[1:], desc="Combining .mp3 files", unit="file"):
+        combined += AudioSegment.from_mp3(file)
+
+    # Export the combined audio to a single 128 kbps .mp3 file
     combined.export("output.mp3", format="mp3", bitrate="128k")
+
+    # Clean up the intermediate .mp3 files
+    for file in intermediate_files:
+        os.remove(file)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Combine WAV files into an MP3.')
