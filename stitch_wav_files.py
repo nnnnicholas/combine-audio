@@ -1,7 +1,12 @@
 import os
 import argparse
+import logging
 from pydub import AudioSegment
 from tqdm import tqdm
+
+# Configure logging
+logging.basicConfig(filename='error.log', level=logging.ERROR, 
+                    format='%(asctime)s %(levelname)s: %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 
 def stitch_files(directory):
     # Get a list of all .wav files (case-insensitive) in the directory
@@ -31,6 +36,8 @@ if __name__ == "__main__":
     try:
         stitch_files(args.directory)
     except ValueError as e:
-        print(str(e))
+        logging.error(str(e))  # log to the file
+        print(str(e))  # also print the error message
     except IndexError as e:
-        print("Unexpected error:", str(e))
+        logging.error("Unexpected error: " + str(e))  # log to the file
+        print("Unexpected error:", str(e))  # also print the error message
