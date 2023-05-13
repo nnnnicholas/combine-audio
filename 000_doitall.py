@@ -3,6 +3,7 @@ import subprocess
 import sys
 import openai
 from dotenv import load_dotenv
+from datetime import datetime
 
 # Load .env file
 load_dotenv()
@@ -31,7 +32,8 @@ def compress_audio(input_dir):
 
 # Function to call Whisper API for each file in the output directory
 def call_whisper_api(output_dir):
-    transcript_file_path = os.path.join(output_dir, 'transcript.txt')
+    timestamp = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+    transcript_file_path = os.path.join(output_dir, f'Transcript_{timestamp}.txt')
     with open(transcript_file_path, 'w') as transcript_file:
         for filename in os.listdir(output_dir):
             if filename.lower().endswith('.mp3'):
