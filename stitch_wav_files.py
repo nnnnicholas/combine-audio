@@ -19,7 +19,7 @@ def stitch_files(directory, output_bitrate="128k"):
     # Write the file paths to a list file for ffmpeg
     list_file = "wav_files.txt"
     with open(list_file, "w") as f:
-        for file in files:
+        for file in tqdm(files, desc='Preparing files'):  # Adding progress bar
             f.write(f"file '{os.path.join(directory, file)}'\n")
 
     # Combine and convert all .wav files into one .mp3 file
