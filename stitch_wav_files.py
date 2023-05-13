@@ -3,8 +3,12 @@ import argparse
 from pydub import AudioSegment
 
 def stitch_files(directory):
-    # Get a list of all .wav files in the directory
-    files = sorted([f for f in os.listdir(directory) if f.endswith('.wav')])
+    # Get a list of all .wav files (case-insensitive) in the directory
+    files = sorted([f for f in os.listdir(directory) if f.lower().endswith('.wav')])
+
+    # Check if the directory is empty or contains no .wav files
+    if not files:
+        raise ValueError("The specified directory is empty or contains no .wav files")
 
     # Load the first file
     combined = AudioSegment.from_wav(os.path.join(directory, files[0]))
@@ -22,4 +26,10 @@ if __name__ == "__main__":
                         help='Directory containing WAV files to be combined')
 
     args = parser.parse_args()
-    stitch_files(args.directory)
+
+    try:
+        stitch_files(args.directory)
+    except ValueError as e:
+        print(str(e))
+    except IndexError as e:
+        print("Unexpected error:", str(e))
