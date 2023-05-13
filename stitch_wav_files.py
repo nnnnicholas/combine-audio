@@ -1,22 +1,14 @@
 import os
 import argparse
 import logging
-from pydub import AudioSegment
 from tqdm import tqdm
-from tqdm.contrib.concurrent import process_map
+import subprocess
 
 # Configure logging
 logging.basicConfig(filename='error.log', level=logging.ERROR, 
                     format='%(asctime)s %(levelname)s: %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 
-def convert_wav_to_mp3(file, directory, intermediate_bitrate="64k"):
-    wav_path = os.path.join(directory, file)
-    wav_audio = AudioSegment.from_wav(wav_path)
-    intermediate_file = os.path.splitext(file)[0] + "_intermediate.mp3"
-    wav_audio.export(intermediate_file, format="mp3", bitrate=intermediate_bitrate)
-    return intermediate_file
-
-def stitch_files(directory, intermediate_bitrate="64k"):
+def stitch_files(directory, output_bitrate="128k"):
     # Get a list of all .wav files (case-insensitive) in the directory
     files = sorted([f for f in os.listdir(directory) if f.lower().endswith('.wav')])
 
@@ -24,22 +16,19 @@ def stitch_files(directory, intermediate_bitrate="64k"):
     if not files:
         raise ValueError("The specified directory is empty or contains no .wav files")
 
-    # Convert each .wav file to an intermediate .mp3 file with 64 kbps bitrate
-    intermediate_files = process_map(lambda file: convert_wav_to_mp3(file, directory, intermediate_bitrate),
-                                     files, desc="Converting .wav files to .mp3", unit="file")
-    # Load the first intermediate .mp3 file
-    combined = AudioSegment.from_mp3(intermediate_files[0])
+    # Write the file paths to a list file for ffmpeg
+    list_file = "wav_files.txt"
+    with open(list_file, "w") as f:
+        for file in files:
+            f.write(f"file '{os.path.join(directory, file)}'\n")
 
-    # Append all subsequent intermediate .mp3 files
-    for file in tqdm(intermediate_files[1:], desc="Combining .mp3 files", unit="file"):
-        combined += AudioSegment.from_mp3(file)
+    # Combine and convert all .wav files into one .mp3 file
+    output_file = "output.mp3"
+    command = ['ffmpeg', '-f', 'concat', '-safe', '0', '-i', list_file, '-vn', '-ar', '44100', '-ac', '2', '-b:a', output_bitrate, output_file]
+    subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    # Export the combined audio to a single 64 kbps .mp3 file
-    combined.export("output.mp3", format="mp3", bitrate="64k")
-
-    # Clean up the intermediate .mp3 files
-    for file in intermediate_files:
-        os.remove(file)
+    # Clean up the list file
+    os.remove(list_file)
 
 
 if __name__ == "__main__":
