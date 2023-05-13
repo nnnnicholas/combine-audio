@@ -3,10 +3,18 @@ import argparse
 import logging
 from pydub import AudioSegment
 from tqdm import tqdm
+from tqdm.contrib.concurrent import process_map
 
 # Configure logging
 logging.basicConfig(filename='error.log', level=logging.ERROR, 
                     format='%(asctime)s %(levelname)s: %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+
+def convert_wav_to_mp3(file, directory, intermediate_bitrate="64k"):
+    wav_path = os.path.join(directory, file)
+    wav_audio = AudioSegment.from_wav(wav_path)
+    intermediate_file = os.path.splitext(file)[0] + "_intermediate.mp3"
+    wav_audio.export(intermediate_file, format="mp3", bitrate=intermediate_bitrate)
+    return intermediate_file
 
 def stitch_files(directory, intermediate_bitrate="64k"):
     # Get a list of all .wav files (case-insensitive) in the directory
@@ -17,14 +25,8 @@ def stitch_files(directory, intermediate_bitrate="64k"):
         raise ValueError("The specified directory is empty or contains no .wav files")
 
     # Convert each .wav file to an intermediate .mp3 file with 64 kbps bitrate
-    intermediate_files = []
-    for file in tqdm(files, desc="Converting .wav files to .mp3", unit="file"):
-        wav_path = os.path.join(directory, file)
-        wav_audio = AudioSegment.from_wav(wav_path)
-        intermediate_file = os.path.splitext(file)[0] + "_intermediate.mp3"
-        wav_audio.export(intermediate_file, format="mp3", bitrate=intermediate_bitrate)
-        intermediate_files.append(intermediate_file)
-
+    intermediate_files = process_map(lambda file: convert_wav_to_mp3(file, directory, intermediate_bitrate),
+                                     files, desc="Converting .wav files to .mp3", unit="file")
     # Load the first intermediate .mp3 file
     combined = AudioSegment.from_mp3(intermediate_files[0])
 
