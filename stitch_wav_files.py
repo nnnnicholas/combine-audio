@@ -1,48 +1,28 @@
 import os
-import argparse
-import logging
-from tqdm import tqdm
 import subprocess
+import sys
+import datetime
 
-# Configure logging
-logging.basicConfig(filename='error.log', level=logging.ERROR, 
-                    format='%(asctime)s %(levelname)s: %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+def compress_audio(input_dir):
+    output_dir = os.path.join(input_dir, "output")
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
-def stitch_files(directory, output_bitrate="128k"):
-    # Get a list of all .wav files (case-insensitive) in the directory
-    files = sorted([f for f in os.listdir(directory) if f.lower().endswith('.wav')])
+    for file_name in os.listdir(input_dir):
+        if file_name.lower().endswith(".wav"):
+            input_file = os.path.join(input_dir, file_name)
 
-    # Check if the directory is empty or contains no .wav files
-    if not files:
-        raise ValueError("The specified directory is empty or contains no .wav files")
+            timestamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+            output_file = os.path.join(output_dir, timestamp + '.mp3')
 
-    # Write the file paths to a list file for ffmpeg
-    list_file = "wav_files.txt"
-    with open(list_file, "w") as f:
-        for file in tqdm(files, desc='Preparing files'):  # Adding progress bar
-            f.write(f"file '{os.path.join(directory, file)}'\n")
-
-    # Combine and convert all .wav files into one .mp3 file
-    output_file = "output.mp3"
-    command = ['ffmpeg', '-f', 'concat', '-safe', '0', '-i', list_file, '-vn', '-ar', '44100', '-ac', '2', '-b:a', output_bitrate, output_file]
-    subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-    # Clean up the list file
-    os.remove(list_file)
-
+            # Use ffmpeg to convert to mp3 with 64k bitrate, suitable for voice
+            subprocess.run(["ffmpeg", "-i", input_file, "-vn", "-ar", "44100", "-ac", "1", "-b:a", "64k", output_file])
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Combine WAV files into an MP3.')
-    parser.add_argument('-d', '--directory', type=str, required=True,
-                        help='Directory containing WAV files to be combined')
+    if len(sys.argv) != 2:
+        print("Usage: python3 compress_audio.py <input_dir>")
+        sys.exit(1)
 
-    args = parser.parse_args()
+    input_dir = sys.argv[1]
 
-    try:
-        stitch_files(args.directory)
-    except ValueError as e:
-        logging.error(str(e))  # log to the file
-        print(str(e))  # also print the error message
-    except IndexError as e:
-        logging.error("Unexpected error: " + str(e))  # log to the file
-        print("Unexpected error:", str(e))  # also print the error message
+    compress_audio(input_dir)
