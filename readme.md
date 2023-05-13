@@ -39,5 +39,12 @@ Now, you should be able to run the project.
 
 ## Usage
 
-Describe here how to use your project, any relevant scripts or commands to run.
+1. Initialize the virtual environment (if you haven't already):
+    ```bash
+    source venv/bin/activate
+    ```
 
+2. Run the script:
+    ```bash
+    python3 stitch_wav_files.py -d <PATH_TO_DIRECTORY_CONTAINING_WAV_FILES>
+    ```
