@@ -1,6 +1,7 @@
 import os
 import argparse
 from pydub import AudioSegment
+from tqdm import tqdm
 
 def stitch_files(directory):
     # Get a list of all .wav files (case-insensitive) in the directory
@@ -13,8 +14,8 @@ def stitch_files(directory):
     # Load the first file
     combined = AudioSegment.from_wav(os.path.join(directory, files[0]))
 
-    # Append all subsequent files
-    for f in files[1:]:
+    # Append all subsequent files with a progress bar
+    for f in tqdm(files[1:], desc="Combining audio files", unit="file"):
         combined += AudioSegment.from_wav(os.path.join(directory, f))
 
     # Export to mp3
