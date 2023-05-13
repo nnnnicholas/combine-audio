@@ -16,7 +16,7 @@ def compress_audio(input_dir):
     output_dir = os.path.join(input_dir, 'output')
     os.makedirs(output_dir, exist_ok=True)
 
-    for filename in os.listdir(input_dir):
+    for filename in sorted(os.listdir(input_dir)):
         if filename.lower().endswith('.wav'):
             input_file = os.path.join(input_dir, filename)
             compressed_file = os.path.join(output_dir, f"{os.path.splitext(filename)[0]}.mp3")
@@ -34,17 +34,24 @@ def compress_audio(input_dir):
 def call_whisper_api(output_dir):
     timestamp = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
     transcript_file_path = os.path.join(output_dir, f'Transcript_{timestamp}.txt')
+    
+    transcripts = []
+    for filename in sorted(os.listdir(output_dir)):
+        if filename.lower().endswith('.mp3'):
+            audio_file_path = os.path.join(output_dir, filename)
+            with open(audio_file_path, 'rb') as audio_file:
+                try:
+                    transcript = openai.Audio.translate("whisper-1", audio_file)
+                    transcripts.append((filename, transcript))
+                except Exception as e:
+                    print(f"Error occurred while translating {audio_file_path}: {str(e)}")
+    
+    # Sort the transcripts and write them to the file
+    transcripts.sort(key=lambda x: x[0])
     with open(transcript_file_path, 'w') as transcript_file:
-        for filename in os.listdir(output_dir):
-            if filename.lower().endswith('.mp3'):
-                audio_file_path = os.path.join(output_dir, filename)
-                with open(audio_file_path, 'rb') as audio_file:
-                    try:
-                        transcript = openai.Audio.translate("whisper-1", audio_file)
-                        transcript_file.write(f'Transcript for {filename}:\n')
-                        transcript_file.write(f'{transcript}\n\n')
-                    except Exception as e:
-                        print(f"Error occurred while translating {audio_file_path}: {str(e)}")
+        for filename, transcript in transcripts:
+            transcript_file.write(f'Transcript for {filename}:\n')
+            transcript_file.write(f'{transcript}\n\n')
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
